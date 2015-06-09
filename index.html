@@ -49,44 +49,214 @@
     </script>
   </head>
   <body>
-    <div id="launch"><button onclick="drawdiagram(filterval='',colA='groupfrom',colB='groupto',val='groupcount');">Draw!</button>
-    <button onclick="drawdiagram(filterval='',colA='from',colB='to',val='count');">Draw level 2!</button></div>
+    <div id="launch" ><button onclick="drawdiagram(filterval='',colA='groupfrom',colB='groupto',val='groupcount');setclickdraw()">Draw!</button>
+    <button onclick="drawdiagram(filterval='',colA='from',colB='to',val='count');setclickdrawoverall()">Draw Overall!</button></div>
+    <div id="help" >Click on a segment[on the perimeter] to expand it!</div>
     <div id="tooltip"></div>
-    <script src="http://d3js.org/d3.v3.min.js"></script>
-    <script src="lib/underscore.js"></script>
-    <script src="lib/mapper.js"></script>
-        <script src="lib/palette.js"></script>
+    <script src="d3/d3.min.js"></script>
+    <script src="d3/underscore.js"></script>
+    <script src="d3/mapper.js"></script>
+        <script src="d3/palette.js"></script>
  
     <script>
       //*******************************************************************
       //  CREATE MATRIX AND MAP
       //*******************************************************************
-      function regionfilter(x,dataset){
-        var result=[];
-      for(var m=0;m<dataset.length;m++)
-      {
-        if(dataset[m].fromregion==x)
-        {
-          result.push(dataset[m]);
-        }
+function finaldata(exmatrix,exmap){
+//var exmap={"Assistant Manager":{"name":"Assistant Manager","id":0},"Associate":{"name":"Associate","id":1},"Developer/Analyst":{"name":"Developer/Analyst","id":2},"Director":{"name":"Director","id":3},"Junior Developer/Junior Analyst":{"name":"Junior Developer/Junior Analyst","id":4},"Manager":{"name":"Manager","id":5},"Senior Developer/Senior Analyst":{"name":"Senior Developer/Senior Analyst","id":6},"Senior Director":{"name":"Senior Director","id":7},"Senior Manager":{"name":"Senior Manager","id":8},"Learning":{"name":"Learning","id":9}};
+//var exmatrix=[[0,0,0,0,0,0,0,0,0,805],[0,0,0,0,0,0,0,0,0,25510],[0,0,0,0,0,0,0,0,0,774],[0,0,0,0,0,0,0,0,0,96],[0,0,0,0,0,0,0,0,0,29],[0,0,0,0,0,0,0,0,0,799],[0,0,0,0,0,0,0,0,0,1215],[0,0,0,0,0,0,0,0,0,16],[0,0,0,0,0,0,0,0,0,21],[805,25510,774,96,29,799,1215,16,21,0]];
+var data2,aggdataset=[];
+var storekey,temp,index=0,index2=0;
+var cond= 'AIG 6th floor';
+var subgroups=[];
+for(key in exmap){
+  if(exmap[key].name=="Learning") break;
+    index+=1;
+  }
+//console.log(index);   
+for(key in exmap){
+  if(exmap[key].id==exmatrix.length-1 &&  ('Learning' in exmap)){
+    
+
+    storekey=exmap[key].id;
+    exmap[key].id=index;
+    exmap['Learning'].id=exmatrix.length-1;
+    //console.log(storekey);  
+    
+  }
+}
+if('Learning' in exmap){
+subgroups=exmatrix[storekey];
+exmatrix[storekey]=exmatrix[index];
+exmatrix[index]=subgroups;
+
+for(var i=0;i<exmatrix.length;i++){
+  temp=exmatrix[i][index];
+  exmatrix[i][index]=exmatrix[i][storekey];
+  exmatrix[i][storekey]=temp;
+}
+}
+for(key in exmap){
+  if(exmap[key].name=="Roles") 
+    index2=exmap[key].id;
+  } 
+
+for(key in exmap){
+  
+  if(exmap[key].id==0 &&  ('Roles' in exmap)){
+    storekey=exmap[key].id;
+    exmap[key].id=index2;
+    exmap['Roles'].id=0;
+    //console.log(storekey);  
+
+    }
+  
+}
+if('Roles' in exmap){
+subgroups=exmatrix[storekey];
+exmatrix[storekey]=exmatrix[index2];
+exmatrix[index2]=subgroups; 
+for(var i=0;i<exmatrix.length;i++){
+  temp=exmatrix[i][index2];
+  exmatrix[i][index2]=exmatrix[i][storekey];
+  exmatrix[i][storekey]=temp;
+}
+}
+return [exmatrix,exmap];
+}    
+function changedata(condition){
+var dummy=[];
+var dummy2=[];
+var dummy3=[];
+var index=0;
+var flag;
+var cond=condition;
+d3.csv("data/lnduse3.csv",function(error,data){
+data.count=+data.count;
+dummy=data;
+for(var i=0;i<dummy.length;i++)
+  {
+    if(dummy[i].fromregion==cond || dummy[i].toregion==cond) {
+        dummy2[i]={};
+        if(dummy[i].fromregion==cond) dummy2[i]['from']=dummy[i].from;
+        else dummy2[i]['from']=dummy[i].fromregion
+ 
+        if(dummy[i].toregion==cond) dummy2[i]['to']=dummy[i].to;
+        else dummy2[i]['to']=dummy[i].toregion
+        dummy2[i]['count']=dummy[i].count;
       }
-      return result;
+ 
+    else {
+ 
+        dummy2[i]={};
+        dummy2[i]['from']=dummy[i].fromregion;
+        dummy2[i]['to']=dummy[i].toregion;
+        dummy2[i]['count']=dummy[i].count;
+ 
       }
+  }
+ 
+ 
+dummy2.count=+dummy2.count;
+//console.log("outside");
+for(var k=0;k<dummy2.length;k++)
+{
+  if(k==0){
+  dummy3[index]={}
+  dummy3[index]['from']=dummy2[k]['from'];
+  dummy3[index]['to']=dummy2[k]['to'];
+  dummy3[index]['count']=dummy2[k]['count'];
+  index+=1;
+  }
+  else{
+    flag=0;
+  for(var l=0;l<dummy3.length;l++){
+   
+    if (dummy2[k].from==dummy3[l].from && dummy2[k].to==dummy3[l].to){
+     // console.log(dummy3[l].count);
+      //console.log(index);
+      dummy3[l].count=+dummy3[l].count;
+      dummy2[k].count=+dummy2[k].count;
+      dummy3[l].count=dummy2[k].count+dummy3[l].count;
+      flag=1;
+      //console.log(dummy3[l].count);
+    }
+  }
+    if(flag==0){
+      //console.log(dummy3.length);
+      //console.log(k);
+      dummy3[index]={};
+      dummy3[index]['from']=dummy2[k]['from'];
+      dummy3[index]['to']=dummy2[k]['to'];
+      dummy3[index]['count']=dummy2[k]['count'];
+      index+=1;
+    }
+ 
+  }
+}
+ 
+});
+return dummy3;
+}
+function setclickdraw(){
+  click=0;
+  deepest=false;
+}
+function setclickdrawoverall()
+{
+  click=1;
+  deepest=true;
+}
+ 
+function regionfilter(x,dataset){
+  var result=[];
+  var fill=[];
+for(var m=0;m<dataset.length;m++)
+{
+  if(dataset[m].fromregion==x)
+  {
+   result.push(dataset[m]);
+  }
+}
+return result;
+}
       var dataset;
-    function drawdiagram(filterval,colA,colB,val) {
-      d3.selectAll("svg").remove();
-     // console.log(filterval);
+      var deepest;
+      var map;
+      var click;
+    function drawdiagram(filterval,colA,colB,val,input) {
+      d3.selectAll("svg").transition().duration(300).style("opacity",0).each("end",function(d){d3.select(this).remove()});
+     //d3.selectAll("svg").remove();
+     //console.log(filterval);
       filterval = filterval || "empty";
       colA=colA || "from";
       colB=colB || "to";
       val=val ||"count";
-      d3.csv('data/randomgroup.csv', function (error, data) {
-        dataset=data;
+      if(typeof input==="undefined"){input = 'default'};
+ 
+      if(click==1){
+        deepest=true;
+      }
+ 
+      else{deepest=false;}
+    
+      d3.csv('data/lnduse3.csv', function (error, data) {
+       dataset=data;
         if(filterval!='empty'){
  
-        data=regionfilter(filterval,data);
+        data=regionfilter(filterval,data);      
         }
-        var mpr = chordMpr(data);
+        if(input=='default'){
+          var mpr = chordMpr(data);
+        }
+        else {
+          for(key in input){
+            input[key].count=+input[key].count;
+          }
+         
+          //console.log(input);
+          var mpr=chordMpr(input);}
+        
         //console.log(data);
         mpr
           .addValuesToMap(colA)
@@ -99,31 +269,40 @@
             if (!recs[0]) return 0;
             return +recs[0][val];
           });
-        //console.log(mpr.getMatrix());
-        drawChords(mpr.getMatrix(), mpr.getMap());
+        map=mpr.getMap(); 
+        console.log(JSON.stringify(mpr.getMap()));
+        console.log(JSON.stringify(mpr.getMatrix()));
+        //console.log(JSON.stringify(finaldata(mpr.getMatrix(), mpr.getMap())[0]));
+       // console.log(JSON.stringify(finaldata(mpr.getMatrix(), mpr.getMap())[1]));
+        //drawChords(mpr.getMatrix(),mpr.getMap());
+        drawChords(finaldata(mpr.getMatrix(),mpr.getMap())[0],finaldata(mpr.getMatrix(),mpr.getMap())[1]);
       });
     }
       //*******************************************************************
       //  DRAW THE CHORD DIAGRAM
       //*******************************************************************
       function drawChords (matrix, mmap) {
-        var w = 980, h = 800, r1 = h / 2, r0 = r1 - 100;
+        var w = 980, h = 900, r1 = h / 2, r0 = r1 - 100;
         var colarr=palette(['sol-accent'],8)
         var colarr2=[];
         for(var q=0;q<colarr.length;q++)
         {
           colarr2[q]='#'+colarr[q];
         }
-        //colarr2=["#000000", "#FFDD89", "#957244", "#F26223","#ff0000"];
- 
-        var fill = d3.scale.ordinal()
+        var colarr3=["#00a4e4","#005984"];
+            if(!deepest){
+             fill = d3.scale.ordinal()
             .domain(d3.range(28))
-            .range(colarr2);
- 
+            .range(colarr3);}
+            else{
+            fill = d3.scale.ordinal()
+                        .domain(d3.range(28))
+                        .range(colarr2);}
+       
         var chord = d3.layout.chord()
             .padding(.02)
-            .sortSubgroups(d3.descending)
-            .sortChords(d3.descending);
+            //.sortSubgroups(d3.descending)
+            //.sortChords(d3.descending);
  
         var arc = d3.svg.arc()
             .innerRadius(r0)
@@ -137,28 +316,43 @@
             .attr("transform", "translate(" + w / 2 + "," + h / 2 + ")");
  
             svg.append("circle")
-                .attr("r", r0 + 20);
+                .attr("r", 100 );
  
         var rdr = chordRdr(matrix, mmap);
         chord.matrix(matrix);
-        console.log(chord.groups());
+ 
         var g = svg.selectAll("g.group")
             .data(chord.groups())
           .enter().append("svg:g")
             .attr("class", "group")
             .on("mouseover", mouseover)
-            .on("mouseout", function (d) { d3.select("#tooltip").style("visibility", "hidden") });
+            .on("mouseout", function (d) { d3.select("#tooltip").style("visibility", "hidden") })
+            .on("click",
+              function(d){
+                //console.log(deepest);
+                //console.log(click);
+                if(!deepest){
+                  click=1;
+                  d3.select(this).transition().duration(500).style("opacity",0);
+                drawdiagram(filterval='',colA='from',colB='to',val='count',input=changedata(rdr(d).gname))}
+                else{
+                	if(rdr(d).gname=="Roles"||rdr(d).gname=="Learning"){
+                		setclickdrawoverall();
+                		drawdiagram(filterval='',colA='from',colB='to',val='count');
+                	}
+                }
+              });
  
         g.append("svg:path")
             .style("stroke", "black")
-            .style("fill", function(d) { return fill(d.index); })
+            .style("fill", function(d) { if(rdr(d).gname=='Roles') return "#00a4e4"; else if(rdr(d).gname=='Learning') return "#005984"; else return fill(d.index); })
             .attr("d", arc);
  
         g.append("svg:text")
             .each(function(d) { d.angle = (d.startAngle + d.endAngle) / 2; })
             .attr("dy", ".35em")
             .style("font-family", "helvetica, arial, sans-serif")
-            .style("font-size", "10px")
+            .style("font-size", "14px")
             .attr("text-anchor", function(d) { return d.angle > Math.PI ? "end" : null; })
             .attr("transform", function(d) {
               return "rotate(" + (d.angle * 180 / Math.PI - 90) + ")"
@@ -166,11 +360,11 @@
                   + (d.angle > Math.PI ? "rotate(180)" : "");
             })
             .text(function(d) { return rdr(d).gname; })
-            .on("click",
+            /*.on("click",
               function(d){
-             
-                drawdiagram(filterval=rdr(d).gname,colA='from',colB='to',val='count')
-              });
+                if(!deepest){
+                drawdiagram(filterval=rdr(d).gname,colA='from',colB='to',val='count',input='')}
+              })*/;
  
           var chordPaths = svg.selectAll("path.chord")
                 .data(chord.chords())
@@ -186,23 +380,24 @@
                     .style("top", function () { return (d3.event.pageY - 100)+"px"})
                     .style("left", function () { return (d3.event.pageX - 100)+"px";})
                 })
-                .on("mouseout", function (d) { d3.select("#tooltip").style("visibility", "hidden") });
+                .on("mouseout", function (d) { d3.select("#tooltip").style("visibility", "hidden") })
+                ;
  
           function chordTip (d) {
             var p = d3.format(".2%"), q = d3.format(",.3r")
             return "Chord Info:<br/>"
-              + p(d.svalue/d.stotal) + " (" + q(d.svalue) + ") of "
-              + d.sname + " moves to " + d.tname
-              + (d.sname === d.tname ? "": ("<br/>WHEREAS<br/>"
-              + p(d.tvalue/d.ttotal) + " (" + q(d.tvalue) + ") of "
-              + d.tname + " moves " + d.sname))
+              +  q(d.svalue) + " hours spent by "
+              + d.sname + " on " + d.tname
+              //+ (d.sname === d.tname ? "": ("<br/>WHEREAS<br/>"
+              //+ p(d.tvalue/d.ttotal) + " (" + q(d.tvalue) + ") of "
+              //+ d.tname + " moves " + d.sname))
           }
  
           function groupTip (d) {
             var p = d3.format(".1%"), q = d3.format(",.3r")
             return "Group Info:<br/>"
-                + d.gname + " : " + q(d.gvalue) + "<br/>"
-                + p(d.gvalue/d.mtotal) + " of Matrix Total (" + q(d.mtotal) + ")"
+                + d.gname + " : " + q(d.gvalue) + " Hours";
+                
           }
  
           function mouseover(d, i) {
